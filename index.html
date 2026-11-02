@@ -16,11 +16,18 @@
       <span id="round" class="round"></span>
       <div class="progress" aria-hidden="true"><div id="progress-fill"></div></div>
       <button id="undo" class="ghost" title="Undo last pick (Backspace)">Undo</button>
-      <button id="restart" class="ghost" title="Start over">Restart</button>
+      <button id="restart" class="ghost" title="Start this run over">Restart</button>
+      <button id="switch" class="ghost" title="Choose a different kind of project">Switch</button>
     </div>
   </header>
 
-  <main id="duel" class="duel">
+  <main id="start" class="start" hidden>
+    <h2>What's this for?</h2>
+    <p class="lede">Taste depends on the job: what you want on a dashboard isn't what you want on a public site. Each choice is its own run with its own profile.</p>
+    <div id="scopes" class="scopes"></div>
+  </main>
+
+  <main id="duel" class="duel" hidden>
     <section class="pair">
       <article class="card" id="card-a" data-side="a"></article>
       <div class="vs" aria-hidden="true">or</div>
