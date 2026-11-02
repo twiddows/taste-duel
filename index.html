@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Taste Duel</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="bar">
+    <div class="brand">
+      <h1>Taste Duel</h1>
+      <p class="sub">Pick the site you like more. The next pairs follow your picks.</p>
+    </div>
+    <div class="status">
+      <span id="round" class="round"></span>
+      <div class="progress" aria-hidden="true"><div id="progress-fill"></div></div>
+      <button id="undo" class="ghost" title="Undo last pick (Backspace)">Undo</button>
+      <button id="restart" class="ghost" title="Start over">Restart</button>
+    </div>
+  </header>
+
+  <main id="duel" class="duel">
+    <section class="pair">
+      <article class="card" id="card-a" data-side="a"></article>
+      <div class="vs" aria-hidden="true">or</div>
+      <article class="card" id="card-b" data-side="b"></article>
+    </section>
+    <div class="secondary">
+      <button id="both" class="ghost">Both good <kbd>↑</kbd></button>
+      <button id="neither" class="ghost">Neither <kbd>↓</kbd></button>
+    </div>
+    <aside class="learning">
+      <h2>What it's learning</h2>
+      <div id="leaning" class="chips"></div>
+    </aside>
+  </main>
+
+  <main id="results" class="results" hidden></main>
+
+  <div id="lightbox" class="lightbox" hidden>
+    <div class="lightbox-inner">
+      <img id="lightbox-img" alt="">
+    </div>
+    <button id="lightbox-close" class="lightbox-close" aria-label="Close preview">Close <kbd>Esc</kbd></button>
+  </div>
+
+  <script src="data/pool.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
