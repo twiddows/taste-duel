@@ -395,11 +395,12 @@
       <p class="lede">${state.round} pairs, ${state.seen.length} seen. Bars to the right are what you picked toward, to the left what you passed over.</p>
       <div class="actions">
         ${canContinue ? `<button class="primary" id="more">Keep going (${EXTRA_ROUNDS} more)</button>` : ""}
+        <button class="primary" id="send-folder" hidden></button>
         <button class="ghost" id="copy-brief">Copy brief</button>
         <button class="ghost" id="export">Download results (JSON)</button>
       </div>
-      <p class="vault-hint">To file your favourites as screenshots (for Taste Vault or any inspiration folder), download the results and run
-        <code>node tools/to-taste-vault.mjs &lt;results file&gt; &lt;folder&gt;</code>.</p>
+      <p class="vault-hint" id="vault-hint">To file your favourites as screenshots (for Taste Vault or any inspiration folder), download the results and run
+        <code>node tools/to-taste-vault.mjs &lt;results file&gt; &lt;folder&gt;</code>, or start the app with <code>node tools/serve.mjs</code> to get a save button here.</p>
 
       <h3>Taste profile</h3>
       <div class="profile">
@@ -426,6 +427,36 @@
     $("#more")?.addEventListener("click", () => { state.target = state.round + EXTRA_ROUNDS; save(); current = null; renderDuel(); });
     $("#copy-brief").addEventListener("click", () => copyBrief());
     $("#export").addEventListener("click", () => exportJSON(top, rows));
+    if (top.length) offerSave(top, rows);
+  }
+
+  // The save button only exists when tools/serve.mjs is serving the page with a folder set.
+  function offerSave(top, rows) {
+    fetch("api/config").then((r) => (r.ok ? r.json() : null)).then((cfg) => {
+      const btn = $("#send-folder");
+      if (!cfg || !cfg.folder || !btn) return;
+      btn.textContent = cfg.label;
+      btn.title = `Saves your top ${top.length} as screenshots in ${cfg.folder}`;
+      btn.hidden = false;
+      $("#vault-hint").textContent = `Saves your top ${top.length} as screenshots, with the brief and profile, under ${cfg.folder}.`;
+      btn.addEventListener("click", () => sendToFolder(top, rows));
+    }).catch(() => {});
+  }
+
+  function sendToFolder(top, rows) {
+    const btn = $("#send-folder");
+    const hint = $("#vault-hint");
+    btn.disabled = true;
+    btn.textContent = "Saving…";
+    fetch("api/save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(resultsData(top, rows)) })
+      .then((r) => r.json())
+      .then((out) => {
+        if (out.error) throw new Error(out.error);
+        btn.textContent = out.failed ? `Saved ${out.saved + out.skipped}, ${out.failed} failed` : "Saved";
+        btn.disabled = !out.failed;
+        hint.textContent = `${out.saved} saved, ${out.skipped} already there${out.failed ? `, ${out.failed} failed (click to retry)` : ""} → ${out.outDir}`;
+      })
+      .catch((e) => { btn.textContent = "Try again"; btn.disabled = false; hint.textContent = `Couldn't save: ${e.message}`; });
   }
 
   function copyBrief() {

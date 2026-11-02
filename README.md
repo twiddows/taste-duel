@@ -27,10 +27,11 @@ It's static files: no build, no dependencies. Browsers block scripts on `file://
 setups, so serve the folder:
 
 ```
-python -m http.server 4611 --bind 127.0.0.1
+node tools/serve.mjs
 ```
 
-then open http://127.0.0.1:4611. On Windows, double-click `start.cmd`.
+then open http://127.0.0.1:4611. `python -m http.server 4611 --bind 127.0.0.1` works too, without
+the save button. On Windows, double-click `start.cmd` (Node if you have it, else Python).
 
 ## Keys
 
@@ -47,9 +48,18 @@ Progress is kept in the browser's local storage, so closing the tab doesn't lose
 
 ## Keep your favourites
 
-**Download results** saves the run as JSON (profile, brief, favourites, every pick). To turn the
-favourites into screenshot files for an inspiration library (for example a
-[Taste Vault](https://github.com/cth9191/taste-vault) drop folder):
+**Download results** saves the run as JSON (profile, brief, favourites, every pick).
+
+To turn the favourites into screenshot files for an inspiration library (for example a
+[Taste Vault](https://github.com/cth9191/taste-vault) drop folder) in one click, start the app with
+`node tools/serve.mjs` and put a `taste-duel.config.json` beside `index.html` (it's git-ignored):
+
+```json
+{ "folder": "D:\\path\\to\\inspiration", "label": "Send to Taste Vault" }
+```
+
+The results page then shows that button (`TASTE_DUEL_FOLDER` works instead of the file). Without it,
+run the same thing by hand on a downloaded results file:
 
 ```
 node tools/to-taste-vault.mjs taste-duel-dashboards-2026-11-01.json "D:\path\to\inspiration"
@@ -90,6 +100,7 @@ design twice (React and Next.js) appear once.
 | `app.js` | runs, model, pair selection, rendering |
 | `data/pool.js` | the design pool |
 | `tools/to-taste-vault.mjs` | saves a run's favourites as screenshot files |
+| `tools/serve.mjs` | local server: the static files plus the save button's endpoint |
 | `start.cmd` | Windows launcher |
 
 ## License
