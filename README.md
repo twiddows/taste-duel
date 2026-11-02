@@ -64,3 +64,8 @@ same design twice (React and Next.js) appear once.
 | `app.js` | model, pair selection, rendering |
 | `data/pool.js` | the site pool |
 | `start.cmd` | Windows launcher |
+
+## License
+
+MIT for the code. The templates listed in `data/pool.js` (names, descriptions, preview images)
+belong to their authors on 21st.dev.
