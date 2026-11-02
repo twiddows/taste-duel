@@ -8,6 +8,8 @@
 // several features, so each pick teaches it something.
 //
 // Each scope (what the design is for) is its own run: its own pool, model and saved progress.
+// A project round (?request=<id>, made by tools/request.mjs) is a fresh, shorter run of one scope
+// for one project, saved under its own key; its results go back to the project's folder.
 
 (function () {
   "use strict";
@@ -57,7 +59,8 @@
   const byId = new Map(ALL.map((s) => [s.id, s]));
   const X = new Map(ALL.map((s) => [s.id, featureVector(s)]));
 
-  let scope = null;             // the SCOPES entry being played
+  let scope = null;             // the SCOPES entry being played (a copy with key/pairs in a project round)
+  let request = null;           // the project round from ?request=, else null
   let pool = [];                // that scope's sites
   let state = null;
   let undoStack = [];
@@ -79,7 +82,7 @@
   }
 
   function fresh() {
-    return { w: FEATURES.map(() => 0), b: {}, seen: [], picks: [], round: 0, target: roundsFor(scope) };
+    return { w: FEATURES.map(() => 0), b: {}, seen: [], picks: [], round: 0, target: scope.pairs || roundsFor(scope) };
   }
 
   function score(id) {
@@ -168,12 +171,12 @@
   // ---------- persistence ----------
 
   function save() {
-    try { localStorage.setItem(STORE_PREFIX + scope.id, JSON.stringify(state)); } catch (e) { /* private window */ }
+    try { localStorage.setItem(STORE_PREFIX + (scope.key || scope.id), JSON.stringify(state)); } catch (e) { /* private window */ }
   }
 
-  function load(scopeId) {
+  function load(key) {
     try {
-      const raw = localStorage.getItem(STORE_PREFIX + scopeId);
+      const raw = localStorage.getItem(STORE_PREFIX + key);
       if (!raw) return null;
       const s = JSON.parse(raw);
       if (!Array.isArray(s.w) || s.w.length !== FEATURES.length) return null;
@@ -220,14 +223,29 @@
   }
 
   function startScope(id) {
-    scope = SCOPES.find((s) => s.id === id) || SCOPES[0];
+    request = null;
+    enterScope(SCOPES.find((s) => s.id === id) || SCOPES[0]);
+    try { localStorage.setItem(STORE_PREFIX + "last", scope.id); } catch (e) { /* ignore */ }
+  }
+
+  function enterScope(def) {
+    scope = def;
     pool = ALL.filter(scope.filter);
     meanCache = null;
-    state = load(scope.id) || fresh();
+    state = load(scope.key || scope.id) || fresh();
     undoStack = [];
     current = null;
-    try { localStorage.setItem(STORE_PREFIX + "last", scope.id); } catch (e) { /* ignore */ }
     renderDuel();
+  }
+
+  function startRequest(id) {
+    fetch("api/request?id=" + encodeURIComponent(id)).then((r) => (r.ok ? r.json() : null)).then((info) => {
+      if (!info) return renderStart();
+      request = info;
+      const base = SCOPES.find((s) => s.id === info.scope) || SCOPES[SCOPES.length - 1];
+      enterScope({ ...base, key: "req:" + info.id, label: `${info.project} (${base.label})`, short: info.project,
+        pairs: Math.min(info.pairs || 20, roundsFor(base)) });
+    }).catch(() => renderStart());
   }
 
   function cardHTML(site, side) {
@@ -434,7 +452,17 @@
   function offerSave(top, rows) {
     fetch("api/config").then((r) => (r.ok ? r.json() : null)).then((cfg) => {
       const btn = $("#send-folder");
-      if (!cfg || !cfg.folder || !btn) return;
+      if (!cfg || !btn) return;
+      if (request) {
+        btn.textContent = `Send to ${request.project}`;
+        btn.title = `Saves your top ${top.length} as screenshots in ${request.folder}`;
+        btn.hidden = false;
+        $("#vault-hint").textContent = `Saves your top ${top.length} as screenshots, with the brief and profile, under ${request.folder}` +
+          (cfg.folder ? ` and ${cfg.folder}.` : ".") + " Whoever started this round picks them up from there.";
+        btn.addEventListener("click", () => sendToFolder(top, rows));
+        return;
+      }
+      if (!cfg.folder) return;
       btn.textContent = cfg.label;
       btn.title = `Saves your top ${top.length} as screenshots in ${cfg.folder}`;
       btn.hidden = false;
@@ -454,7 +482,8 @@
         if (out.error) throw new Error(out.error);
         btn.textContent = out.failed ? `Saved ${out.saved + out.skipped}, ${out.failed} failed` : "Saved";
         btn.disabled = !out.failed;
-        hint.textContent = `${out.saved} saved, ${out.skipped} already there${out.failed ? `, ${out.failed} failed (click to retry)` : ""} → ${out.outDir}`;
+        hint.textContent = `${out.saved} saved, ${out.skipped} already there${out.failed ? `, ${out.failed} failed (click to retry)` : ""} → ${out.outDir}` +
+          (out.vaultDir ? ` (copy in ${out.vaultDir})` : "");
       })
       .catch((e) => { btn.textContent = "Try again"; btn.disabled = false; hint.textContent = `Couldn't save: ${e.message}`; });
   }
@@ -473,6 +502,7 @@
       date: localDate(),
       scope: scope.id,
       scopeLabel: scope.label,
+      ...(request ? { request: request.id, project: request.project } : {}),
       rounds: state.round,
       profile: Object.fromEntries(rows.map((r) => [r.f, Number(r.v.toFixed(3))])),
       brief: briefText(top, rows),
@@ -537,5 +567,6 @@
     else if (e.key === "Backspace") { e.preventDefault(); undo(); }
   });
 
-  renderStart();
+  const requestId = new URLSearchParams(location.search).get("request");
+  if (requestId) startRequest(requestId); else renderStart();
 })();

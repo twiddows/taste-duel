@@ -69,6 +69,24 @@ It saves the top 12 preview images to `<folder>/taste-duel/<run>-<date>/`, best 
 `taste-duel.md` with the brief and profile. `--top N` changes how many, `--dry-run` shows what it
 would save. Files already there are skipped. Needs Node 18 or later.
 
+## Project rounds (for scripts and coding agents)
+
+A project round is a short, fresh run for one project whose results go back to that project's folder,
+so a script or a coding agent (Claude Code, Codex) can ask you to play and then pick up what you liked:
+
+```
+node tools/request.mjs new --project "Truss site" --folder "D:\work\truss-site\design" --scope marketing --pairs 20 --open
+node tools/request.mjs wait truss-site-2026-11-01
+```
+
+`new` writes `requests/<id>.json` (git-ignored), starts `tools/serve.mjs` if nothing is serving the
+port, and opens `http://127.0.0.1:4611/?request=<id>`. The page plays that scope with its own saved
+progress (your normal runs are untouched) and the results page shows **Send to &lt;project&gt;**. That
+button saves the favourites, `taste-duel.md` and the full `results.json` to
+`<folder>/taste-duel/<id>/`, plus a copy in the save folder when `taste-duel.config.json` sets one.
+`wait` returns as soon as the button has run, printing both folders. The page only ever names a
+request id; the folder comes from the request file on disk.
+
 ## How it learns
 
 Each design has a set of features: its kind (SaaS, agency, portfolio, dashboard, business, shop,
@@ -100,7 +118,8 @@ design twice (React and Next.js) appear once.
 | `app.js` | runs, model, pair selection, rendering |
 | `data/pool.js` | the design pool |
 | `tools/to-taste-vault.mjs` | saves a run's favourites as screenshot files |
-| `tools/serve.mjs` | local server: the static files plus the save button's endpoint |
+| `tools/serve.mjs` | local server: the static files plus the save button's and project rounds' endpoints |
+| `tools/request.mjs` | starts a project round and waits for its results |
 | `start.cmd` | Windows launcher |
 
 ## License

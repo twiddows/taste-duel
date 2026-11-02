@@ -33,7 +33,8 @@ function existingFile(base) {
 }
 
 // Throws on a results object that isn't a Taste Duel run; otherwise saves what it can and reports.
-export async function fileFavourites(results, destRoot, { top = 12, dryRun = false, log = console.log } = {}) {
+// name overrides the <scope>-<date> subfolder (a project round passes its request id).
+export async function fileFavourites(results, destRoot, { top = 12, dryRun = false, log = console.log, name = null } = {}) {
   if (!results || typeof results !== "object") throw new Error("not a results file");
   if (results.tool && results.tool !== "taste-duel") throw new Error("not a Taste Duel results file");
   if (!Array.isArray(results.favourites) || !results.favourites.length) throw new Error("no favourites in this run");
@@ -42,7 +43,7 @@ export async function fileFavourites(results, destRoot, { top = 12, dryRun = fal
   // scope and date name a folder, so keep them to plain word characters.
   const scope = slug(results.scope || "all");
   const date = String(results.date || String(results.generated || "").slice(0, 10) || "undated").replace(/[^\w-]/g, "") || "undated";
-  const outDir = path.join(destRoot, "taste-duel", `${scope}-${date}`);
+  const outDir = path.join(destRoot, "taste-duel", name ? slug(name) : `${scope}-${date}`);
   const favourites = results.favourites.slice(0, top);
 
   log(`${favourites.length} favourites from the ${results.scopeLabel || scope} run -> ${outDir}${dryRun ? " (dry run)" : ""}`);
@@ -87,7 +88,10 @@ export async function fileFavourites(results, destRoot, { top = 12, dryRun = fal
     ...favourites.map((f, i) => `${i + 1}. [${f.name}](${f.url})`),
     "",
   ].join("\n");
-  if (!dryRun) fs.writeFileSync(path.join(outDir, "taste-duel.md"), note);
+  if (!dryRun) {
+    fs.writeFileSync(path.join(outDir, "taste-duel.md"), note);
+    fs.writeFileSync(path.join(outDir, "results.json"), JSON.stringify(results, null, 2));
+  }
 
   log(`Done: ${saved} saved, ${skipped} already there, ${failed} failed.`);
   return { outDir, saved, skipped, failed };
